@@ -1,17 +1,19 @@
 {
   "name": "devtinder",
   "version": "1.0.0",
-  "description": "tinder for devs",
+  "description": "Nodejs",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "nodeJs"
+    "Node"
   ],
   "author": "Dheeraj Singh",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "mongoose": "^8.18.2",
+    "node": "^24.8.0"
   }
 }
