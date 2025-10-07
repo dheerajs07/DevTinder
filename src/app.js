@@ -2,16 +2,16 @@ const express= require('express');
 const {auth}= require('./middleware/Auth')
 const {connectDB}= require('./config/database');
 const app= express();
-const User= require('./model/user')
+const User= require('./model/user');
+const { after } = require('node:test');
 
 app.use(express.json());
 
 app.get("/user", async (req,res)=>{
     const body= req.body.emailId;
-    console.log(body);
     try{
 
-        const user=await  User.find({emailId:body});
+        const user=await  User.find({emailId:body} );
         if(user.length ===0){
             res.send("User not found");
 
@@ -60,16 +60,32 @@ app.delete("/user", async (req,res)=>{
     }
 })
 
-app.patch("/user", async(req,res)=>{
-    const userId= req.body._id;
-    const name= req.body.name;
-
+app.patch("/user/:userId", async(req,res)=>{
+    const userId= req.params?.userId;
+    const data= req.body;
+    
     try{
-        const user = await User.findByIdAndUpdate({_id:userId}, {firstName:name})
+        const ALLOWED_UPDATES=["gender","age","about","photoUrl","Skills"];
+        const isAllowed= Object.keys(data).every((k)=>
+            ALLOWED_UPDATES.includes(k)
+        )
+        if(!isAllowed){
+            throw new Error("Update not allowed .")
+        }
+        
+        if(data?.Skills?.length>10){
+            throw new Error("Skills cannot be greater than 10")
+        }
+
+        const user = await User.findByIdAndUpdate({_id:userId}, data, {
+            runValidators:true,
+            returnDocument:after,
+        })
         res.send("User updated")
         console.log(user);
-    }catch(err){
-        res.status("Something went wrong ");
+    }
+    catch(err){
+        res.status(400).send("Something went wrong " + err.message);
     }
 } )
 
