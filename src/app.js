@@ -1,14 +1,16 @@
 const express= require('express');
-const {auth}= require('./middleware/Auth')
+const { userAuth}= require('./middleware/Auth')
 const {connectDB}= require('./config/database');
 const app= express();
 const User= require('./model/user');
 const { after } = require('node:test');
 const {validateSignUpdata}= require ('./utils/validate')
 const bcrypt= require ('bcrypt');
+const cookieParser= require ('cookie-parser');
+const jwt = require('jsonwebtoken');
 
 app.use(express.json());
-
+app.use(cookieParser());
 app.post("/signup",async(req,res)=>{
     try{
     validateSignUpdata(req);
@@ -38,8 +40,16 @@ app.post("/login", async(req,res)=>{
         if(!user){
             throw new Error ("Invalid Credentials!!!")
         }
-        const isValidPassword=await  bcrypt.compare(password,user.password);
+        const isValidPassword=await  user.validatePassword(password);
         if(isValidPassword){
+            // Create a JWT token 
+            const token= await user.getJWT();
+            
+            // send the token inside a cookie 
+            res.cookie('token',token,{
+                expires: new Date(Date.now()+ 12*3600000),
+            });
+
             res.send("login successful");
             
         }else{
@@ -50,6 +60,19 @@ app.post("/login", async(req,res)=>{
         res.status(400).send("Error : " + err.message);
     }
 
+})
+app.get("/profile",userAuth, async (req,res)=>{
+    try{
+
+        const user=req.user;
+        if(!user){
+            throw new Error("User  does not exist ")
+        }
+        res.send("Reading Cookies");
+    }catch(err){
+        res.status(200).send("Something went wrong" + err.message);
+    }
+    
 })
 
 app.get("/user", async (req,res)=>{
