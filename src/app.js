@@ -8,144 +8,18 @@ const {validateSignUpdata}= require ('./utils/validate')
 const bcrypt= require ('bcrypt');
 const cookieParser= require ('cookie-parser');
 const jwt = require('jsonwebtoken');
+const authRouter= require('./routes/auth');
+const profileRouter= require('./routes/profile');
+const requestRouter= require('./routes/request')
+const userRouter= require('./routes/user');
 
 app.use(express.json());
 app.use(cookieParser());
-app.post("/signup",async(req,res)=>{
-    try{
-    validateSignUpdata(req);
 
-    const {firstName,lastName,emailId,password, age, gender}= req.body;
-
-    const hashedPassword= await bcrypt.hash(password,10);
-
-
-    const user = new User({
-        firstName,lastName,emailId,password:hashedPassword, age, gender
-    });
-    
-        await user.save();
-        res.send("User added successfully");
-    } catch(err){
-        res.status(400).send("Error : " + err.message);
-    }
-    
-})
-
-app.post("/login", async(req,res)=>{
-
-    try{
-        const {emailId,password}= req.body;
-        const user= await User.findOne({emailId:emailId});
-        if(!user){
-            throw new Error ("Invalid Credentials!!!")
-        }
-        const isValidPassword=await  user.validatePassword(password);
-        if(isValidPassword){
-            // Create a JWT token 
-            const token= await user.getJWT();
-            
-            // send the token inside a cookie 
-            res.cookie('token',token,{
-                expires: new Date(Date.now()+ 12*3600000),
-            });
-
-            res.send("login successful");
-            
-        }else{
-            throw new Error("Invalid Credentials")
-        }
-
-    }catch(err){
-        res.status(400).send("Error : " + err.message);
-    }
-
-})
-app.get("/profile",userAuth, async (req,res)=>{
-    try{
-
-        const user=req.user;
-        if(!user){
-            throw new Error("User  does not exist ")
-        }
-        res.send("Reading Cookies");
-    }catch(err){
-        res.status(200).send("Something went wrong" + err.message);
-    }
-    
-})
-
-app.get("/user", async (req,res)=>{
-    const body= req.body.emailId;
-    try{
-
-        const user=await  User.find({emailId:body} );
-        if(user.length ===0){
-            res.send("User not found");
-
-        }
-        else {
-            res.send(user);
-        }
-        
-    } catch(err){
-        res.status(200).send("Something went wrong" + err.message);
-    }
-})
-
-
-app.get("/feed", async(req,res)=>{
-    try{
-        const user=await  User.find({});
-        if(user.length===0){
-            res.send("No connection in your feed ");
-        } else {
-            res.send(user);
-        }
-    } catch(err){
-        res.status(400).send("Something went wrong")
-    }
-})
-
-
-app.delete("/user", async (req,res)=>{
-    const usr= req.body._id;
-    try{
-        const user = await User.findByIdAndDelete(usr);
-        res.send("User deleted successfully");
-    }catch(err){
-        res.status("Something went wrong ");
-    }
-})
-
-app.patch("/user/:userId", async(req,res)=>{
-    const userId= req.params?.userId;
-    const data= req.body;
-    
-    try{
-        const ALLOWED_UPDATES=["gender","age","about","photoUrl","Skills"];
-        const isAllowed= Object.keys(data).every((k)=>
-            ALLOWED_UPDATES.includes(k)
-        )
-        if(!isAllowed){
-            throw new Error("Update not allowed .")
-        }
-        
-        if(data?.Skills?.length>10){
-            throw new Error("Skills cannot be greater than 10")
-        }
-
-        const user = await User.findByIdAndUpdate({_id:userId}, data, {
-            runValidators:true,
-            returnDocument:after,
-        })
-        res.send("User updated")
-        console.log(user);
-    }
-    catch(err){
-        res.status(400).send("Something went wrong " + err.message);
-    }
-} )
+app.use('/', authRouter);
+app.use('/', profileRouter);
+app.use('/', requestRouter);
+app.use('/', userRouter)
 
 connectDB().then(()=>{
     console.log("Connected to database sucessfully")
